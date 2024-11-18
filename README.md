@@ -1,2 +1,2 @@
-# ALFA (Adaotive Learning & Flexibility for ALife)
+# ALFA (Adaptive Learning & Flexibility for ALife)
 "Coming Soon"
