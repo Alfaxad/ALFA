@@ -1,0 +1,20 @@
+// src/config.rs
+pub const PH_UNIT_GRID_SIZE: usize = 10;
+pub const W: usize = 800;
+pub const H: usize = 600;
+pub const MAX_PHEROMONE_STRENGTH: f32 = 255.0;
+pub const PH_CACHE_GRID_SIZE: usize = 10;
+pub const PH_DECAY_RATE: f32 = 0.05;
+pub const PH_GRID_VIZ_MIN_STRENGTH: f32 = 5.0;
+pub const PH_GRID_OPACITY: u8 = 255;
+pub const PH_DECAY_INTERVAL: f32 = 1.0;
+pub const PH_KD_TREE_UPDATE_INTERVAL: f32 = 0.5;
+pub const PH_IMG_UPDATE_SEC: f32 = 0.2;
+pub const FOOD_LOCATION: (f32, f32) = (300.0, 300.0);
+pub const HIVE_LOCATION: (f32, f32) = (100.0, 100.0);
+pub const GUARD_PATROL_RADIUS: f32 = 50.0;
+pub const VIZ_COLOR_STRENGTH: u8 = 10;
+pub const VIZ_DECAY_RATE: f32 = 0.01;
+pub const VIZ_COLOR_TO_FOOD: [u8; 4] = [0, 255, 0, 255];
+pub const VIZ_COLOR_TO_HOME: [u8; 4] = [255, 0, 0, 255];
+pub const VIZ_MAX_COLOR_STRENGTH: u8 = 255;
