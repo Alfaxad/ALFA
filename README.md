@@ -1,6 +1,13 @@
 # ALFA: Adaptive Learning & Flexibility for Artificial Life
 
 
+
+https://github.com/user-attachments/assets/b7ead470-fecd-4f56-ba65-322cf216f868
+
+
+
+
+
 ![Screenshot 2024-12-06 194031](https://github.com/user-attachments/assets/269d7cc4-2318-4700-8f97-d72cecfb468a)
 
 
@@ -15,7 +22,7 @@ ALFA addresses this gap by introducing heterogeneous agents—each species poten
 
 
 
-https://github.com/user-attachments/assets/b7ead470-fecd-4f56-ba65-322cf216f868
+
 
 ## Key Features
 
