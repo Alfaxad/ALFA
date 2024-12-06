@@ -1,12 +1,10 @@
 [package]
-name = "alfa"
+name = "alfa_particle_life"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.11.0"
-rand = "0.8.5"
-bevy_pancam = "0.9.0"
-bevy_egui = "0.21.0"
-kd-tree = "0.5.1"
-
+bevy = "0.11"
+rand = "0.8"
+bevy_egui = "0.22"
+bevy_prototype_lyon = "0.9"
