@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy::window::{Window, WindowPlugin, PrimaryWindow};
+use bevy::window::{Window, WindowPlugin};
 use bevy_egui::EguiPlugin;
 use bevy_prototype_lyon::prelude::*;
 
@@ -29,6 +29,10 @@ fn main() {
         .insert_resource(AdaptiveLearningState::default())
         .insert_resource(CurrentGenomeIndex(0))
         .insert_resource(InteractionRules::default())
+        .insert_resource(SimulationParameters::default())
+        .insert_resource(FitnessMetric::default())
+        .insert_resource(Logger::new("results.csv"))
+        .insert_resource(ParticleCache::default())
         // Use add_plugin for single plugins like EguiPlugin:
         .add_plugin(EguiPlugin)
         // Add the ShapePlugin so that shapes are rendered:

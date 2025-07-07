@@ -35,6 +35,7 @@ impl InteractionRules {
 #[derive(Clone)]
 pub struct Genome {
     pub rules: Vec<f32>,
+    pub radii: Vec<f32>,
     pub fitness: f32,
 }
 
@@ -54,7 +55,14 @@ impl Population {
             for r in rules.iter_mut() {
                 *r = rng.gen_range(-1.0..1.0);
             }
-            genomes.push(Genome { rules, fitness: 0.0 });
+            let radii: Vec<f32> = (0..species_count)
+                .map(|_| rng.gen_range(20.0..100.0))
+                .collect();
+            genomes.push(Genome {
+                rules,
+                radii,
+                fitness: 0.0,
+            });
         }
 
         Self {
@@ -73,17 +81,30 @@ impl Population {
 
         for i in 2..size {
             let mut child = elite1.clone();
-            // Crossover
+            // Crossover rules
             for j in 0..child.rules.len() {
                 if rng.gen_bool(0.5) {
                     child.rules[j] = elite2.rules[j];
                 }
             }
-            // Mutate
+            // Crossover radii
+            for j in 0..child.radii.len() {
+                if rng.gen_bool(0.5) {
+                    child.radii[j] = elite2.radii[j];
+                }
+            }
+            // Mutate rules
             for v in child.rules.iter_mut() {
                 if rng.gen_bool(0.05) {
                     *v += rng.gen_range(-0.1..0.1);
                     *v = v.clamp(-1.0, 1.0);
+                }
+            }
+            // Mutate radii
+            for r in child.radii.iter_mut() {
+                if rng.gen_bool(0.05) {
+                    *r += rng.gen_range(-5.0..5.0);
+                    *r = r.clamp(10.0, 200.0);
                 }
             }
             child.fitness = 0.0;
@@ -135,3 +156,56 @@ impl Default for AdaptiveLearningState {
 
 #[derive(Resource)]
 pub struct CurrentGenomeIndex(pub usize);
+
+#[derive(Resource)]
+pub struct SimulationParameters {
+    pub particles_per_species: usize,
+}
+
+impl Default for SimulationParameters {
+    fn default() -> Self {
+        Self {
+            particles_per_species: 200,
+        }
+    }
+}
+
+#[derive(Resource, Clone, PartialEq)]
+pub enum FitnessMetric {
+    Cohesion,
+    Dispersion,
+    Coverage,
+}
+
+impl Default for FitnessMetric {
+    fn default() -> Self {
+        FitnessMetric::Cohesion
+    }
+}
+
+#[derive(Resource)]
+pub struct Logger {
+    file: std::fs::File,
+}
+
+impl Logger {
+    pub fn new(path: &str) -> Self {
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .expect("Unable to open log file");
+        Self { file }
+    }
+
+    pub fn log(&mut self, generation: usize, fitness: f32) {
+        use std::io::Write;
+        let _ = writeln!(self.file, "{},{}", generation, fitness);
+    }
+}
+
+#[derive(Resource, Default)]
+pub struct ParticleCache {
+    pub data: Vec<(usize, Vec2, Vec2)>,
+    pub velocities: Vec<Vec2>,
+}
