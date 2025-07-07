@@ -29,6 +29,9 @@ fn main() {
         .insert_resource(AdaptiveLearningState::default())
         .insert_resource(CurrentGenomeIndex(0))
         .insert_resource(InteractionRules::default())
+        .insert_resource(SimulationParameters::default())
+        .insert_resource(FitnessMetric::default())
+        .insert_resource(Logger::new("results.csv"))
         // Use add_plugin for single plugins like EguiPlugin:
         .add_plugin(EguiPlugin)
         // Add the ShapePlugin so that shapes are rendered:

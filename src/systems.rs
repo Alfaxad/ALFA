@@ -11,19 +11,42 @@ pub fn setup_system(
     mut commands: Commands,
     population: Res<Population>,
     mut interaction_rules: ResMut<InteractionRules>,
-    species_radii: Res<SpeciesRadii>,
+    mut species_radii: ResMut<SpeciesRadii>,
     current_index: Res<CurrentGenomeIndex>,
+    sim_params: Res<SimulationParameters>,
 ) {
     commands.spawn(Camera2dBundle::default());
+
+    // Simple static obstacle in the center
+    let obstacle_shape = shapes::Circle {
+        radius: 50.0,
+        center: Vec2::ZERO,
+    };
+    let path = GeometryBuilder::build_as(&obstacle_shape);
+    commands.spawn((
+        ShapeBundle {
+            path,
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            ..default()
+        },
+        Fill::color(Color::DARK_GRAY),
+        Obstacle { radius: 50.0 },
+    ));
 
     let genome = &population.genomes[current_index.0];
     interaction_rules.species_count = population.species_count;
     interaction_rules.rules = genome.rules.clone();
+    species_radii.radii = genome.radii.clone();
+    species_radii.radii_sqr = species_radii
+        .radii
+        .iter()
+        .map(|r| r * r)
+        .collect();
 
     let width = 1280.0;
     let height = 720.0;
     let species_count = population.species_count;
-    let particles_per_species = 200;
+    let particles_per_species = sim_params.particles_per_species;
     let mut rng = rand::thread_rng();
 
     for s in 0..species_count {
@@ -68,6 +91,7 @@ pub fn physics_system(
     params: Res<GlobalParameters>,
     interaction_rules: Res<InteractionRules>,
     species_radii: Res<SpeciesRadii>,
+    obstacle_query: Query<(&Transform, &Obstacle)>,
 ) {
     let particles: Vec<(usize, Vec2, Vec2)> = query
         .iter_mut()
@@ -93,6 +117,21 @@ pub fn physics_system(
                 let f = interaction_rules.get(s1, s2) / d2.sqrt();
                 fx += f * dx;
                 fy += f * dy;
+            }
+        }
+
+        // obstacle repulsion
+        for (ot, obs) in obstacle_query.iter() {
+            let op = ot.translation.truncate();
+            let dx = pos1.x - op.x;
+            let dy = pos1.y - op.y;
+            let d2 = dx * dx + dy * dy;
+            let rr = obs.radius + 5.0;
+            if d2 < rr * rr && d2 > 0.0 {
+                let dist = d2.sqrt();
+                let f = params.wall_repel / dist;
+                fx += f * dx / dist;
+                fy += f * dy / dist;
             }
         }
 
@@ -154,15 +193,23 @@ pub fn adaptive_learning_system(
     mut current_index: ResMut<CurrentGenomeIndex>,
     query: Query<(Entity, &Transform), With<Particle>>,
     mut commands: Commands,
-    species_radii: Res<SpeciesRadii>,
+    mut species_radii: ResMut<SpeciesRadii>,
+    sim_params: Res<SimulationParameters>,
+    metric: Res<FitnessMetric>,
+    mut logger: ResMut<Logger>,
 ) {
     state.frame_count += 1;
     if state.frame_count % state.evaluate_interval == 0 {
         let positions: Vec<Vec2> = query.iter().map(|(_, t)| t.translation.truncate()).collect();
-        let score = measure_cluster_cohesion(&positions);
+        let score = match *metric {
+            FitnessMetric::Cohesion => measure_cluster_cohesion(&positions),
+            FitnessMetric::Dispersion => measure_dispersion(&positions),
+            FitnessMetric::Coverage => measure_coverage(&positions),
+        };
         let i = current_index.0;
         population.genomes[i].fitness = score;
         state.last_score = score;
+        logger.log(population.generation, score);
 
         state.tested_count += 1;
         if state.tested_count == population.genomes.len() {
@@ -180,11 +227,13 @@ pub fn adaptive_learning_system(
         let genome = &population.genomes[next_index];
         interaction_rules.species_count = population.species_count;
         interaction_rules.rules = genome.rules.clone();
+        species_radii.radii = genome.radii.clone();
+        species_radii.radii_sqr = species_radii.radii.iter().map(|r| r * r).collect();
 
         let width = 1280.0;
         let height = 720.0;
         let species_count = population.species_count;
-        let particles_per_species = 200;
+        let particles_per_species = sim_params.particles_per_species;
         let mut rng = rand::thread_rng();
 
         for s in 0..species_count {
@@ -228,6 +277,40 @@ fn measure_cluster_cohesion(positions: &[Vec2]) -> f32 {
     1.0 / (1.0 + avg_dist)
 }
 
+fn measure_dispersion(positions: &[Vec2]) -> f32 {
+    if positions.is_empty() {
+        return 0.0;
+    }
+    let mut max_dist = 0.0;
+    for &p in positions {
+        for &q in positions {
+            let d = p.distance_squared(q);
+            if d > max_dist {
+                max_dist = d;
+            }
+        }
+    }
+    1.0 / (1.0 + max_dist)
+}
+
+fn measure_coverage(positions: &[Vec2]) -> f32 {
+    if positions.is_empty() {
+        return 0.0;
+    }
+    let mut min_x = f32::MAX;
+    let mut max_x = f32::MIN;
+    let mut min_y = f32::MAX;
+    let mut max_y = f32::MIN;
+    for p in positions {
+        min_x = min_x.min(p.x);
+        max_x = max_x.max(p.x);
+        min_y = min_y.min(p.y);
+        max_y = max_y.max(p.y);
+    }
+    let area = (max_x - min_x) * (max_y - min_y);
+    1.0 / (1.0 + area)
+}
+
 pub fn ui_system(
     mut egui_context: EguiContexts,
     mut params: ResMut<GlobalParameters>,
@@ -235,6 +318,8 @@ pub fn ui_system(
     mut species_radii: ResMut<SpeciesRadii>,
     population: Res<Population>,
     current_index: Res<CurrentGenomeIndex>,
+    mut sim_params: ResMut<SimulationParameters>,
+    mut metric: ResMut<FitnessMetric>,
 ) {
     egui::Window::new("Simulation Controls").show(egui_context.ctx_mut(), |ui| {
         ui.heading("Global Parameters");
@@ -250,6 +335,13 @@ pub fn ui_system(
         ui.add(egui::Slider::new(&mut adaptive.mutation_rate, 0.0..=0.1).text("Mutation Rate"));
         ui.label(format!("Evaluate Interval: {}", adaptive.evaluate_interval));
         ui.label(format!("Last Score: {:.4}", adaptive.last_score));
+        ui.add(egui::Slider::new(&mut sim_params.particles_per_species, 50..=500).text("Particles/Species"));
+        ui.horizontal(|ui| {
+            ui.label("Fitness Metric:");
+            ui.selectable_value(&mut *metric, FitnessMetric::Cohesion, "Cohesion");
+            ui.selectable_value(&mut *metric, FitnessMetric::Dispersion, "Dispersion");
+            ui.selectable_value(&mut *metric, FitnessMetric::Coverage, "Coverage");
+        });
 
         ui.separator();
         ui.heading("Species Radii");
