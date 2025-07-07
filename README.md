@@ -30,6 +30,10 @@ ALFA addresses this gap by introducing heterogeneous agents—each species poten
 - **Flexible Interaction Rules**: The interactions between agents are governed by a matrix of coefficients defining attraction/repulsion forces. These coefficients evolve, enabling the swarm to adapt to complex environments and tasks.
   
 - **Customizable Parameters**: Viscosity, gravity, wall repulsion, and time scaling can be adjusted interactively. Species-specific parameters like radii are also tunable, allowing real-time experimentation and rapid prototyping of swarm dynamics.
+- **Evolving Morphology**: Each genome now stores species radii so the evolutionary algorithm can mutate and recombine these values to explore diverse morphologies automatically.
+- **Configurable Fitness Metrics**: Cohesion, dispersion, or area coverage can be selected to guide evolution toward different swarm behaviors.
+- **Obstacle Interaction**: A central obstacle repels agents, providing more complex physics and a richer environment for learning.
+- **Particle Cache**: Per-frame buffers are reused to avoid allocations during physics updates, improving performance on large swarms.
   
 - **Visual & UI Integration**: With integrated UI controls (via `bevy_egui`) and geometric rendering (via `bevy_prototype_lyon`), you can intuitively modify simulation parameters, observe changes in real-time, and gain immediate visual feedback.
 
